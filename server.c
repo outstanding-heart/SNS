@@ -34,10 +34,9 @@ typedef struct Clist
 	int length;
 }Clist;
 
-Cnode Load(int sockfd)
+int Load(int sockfd, Cnode *node)
 {
 	int fd,n;
-	Cnode node;
 	char name[MAX], passwd[MAX], buf_pw[MAX], buf[MAX];
 
 	//initialize
@@ -51,7 +50,7 @@ Cnode Load(int sockfd)
 	if((fd = open(name, O_RDONLY)) == -1)//the name is error
 	{
 		write(sockfd, name, strlen(name));
-		return node;
+		return 0;
 	}
 	else
 	{
@@ -68,14 +67,19 @@ Cnode Load(int sockfd)
 	if(strcmp(passwd, buf_pw) != 0)//the password is error
 	{
 		write(sockfd, passwd, strlen(passwd));
+		return 1;
 	}
 	else
 	{
+		sprintf((*node).name, name);
+		//strcpy((*node).name, name);
+		//node.name = name;
 		printf("Loading success\n");
 		sprintf(buf, "~");
 		buf[strlen(buf)] = '\0';
 		write(sockfd, buf, strlen(buf));
 	}
+	return 2;
 }
 
 void Recv(int sockfd)
@@ -138,7 +142,7 @@ void sig_chld(int signo)//处理僵死进程
 
 int main()
 {
-	int listenfd, connfd, i, j, maxi, maxfd, sockfd;
+	int listenfd, connfd, i, j, maxi, maxfd, sockfd, load_count;
 	int nready;
 	Clist client;
 	ssize_t n;
@@ -180,6 +184,7 @@ int main()
 
 	maxfd = listenfd;
 	maxi = -1;
+	client.length = 0;
 	for(i = 0; i< FD_SETSIZE; i++)
 		client.node[i].des = -1;
 	FD_ZERO(&allset);
@@ -241,7 +246,9 @@ int main()
 					close(sockfd);
 					FD_CLR(sockfd,&allset);
 					client.node[i].des = -1;
-					printf("The client %d is over\n",i);
+					bzero(client.node[i].name,sizeof(client.node[i].name));
+					client.length--;
+					printf("%s(%d) is over\n",client.node[i].name ,i);
 				}
 				else
 				{
@@ -260,12 +267,18 @@ int main()
 					}
 					else if(strcmp(buf,"~") == 0)	
 					{
-						Load(sockfd);
+						load_count = Load(sockfd, &client.node[i]);
+						if(load_count == 0)
+							printf("name error!\n");
+						else if(load_count == 1)
+							printf("password error!\n");
+						else
+							printf("The %s loaded!\n", client.node[i].name);
 					}
 					else
 					{
 						//bzero(buf,sizeof(buf));
-						printf("The client %d say: %s", i, buf);
+						printf("%s(%d) say: %s", client.node[i].name, i, buf);
 					}
 					bzero(buf, sizeof(buf));
 					bzero(&sockfd, sizeof(sockfd));
@@ -282,7 +295,7 @@ int main()
 			fgets(sendline, MAX, stdin);
 			sendline[strlen(sendline)] = '\0';
 			write(client.node[j].des, sendline, strlen(sendline));
-			printf("You say %d :%s", j, sendline);
+			printf("You say to %s(%d):%s", client.node[i].name, j, sendline);
 			bzero(sendline, sizeof(sendline));
 		}
 	}
