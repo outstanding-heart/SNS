@@ -244,7 +244,7 @@ int main()
 					close(sockfd);
 					FD_CLR(sockfd,&allset);
 					client.node[i].des = -1;
-					printf("The client %d is over\n",i);
+					printf("%s(%d) is over\n",client.node[i].name ,i);
 				}
 				else
 				{
@@ -269,7 +269,7 @@ int main()
 					else
 					{
 						//bzero(buf,sizeof(buf));
-						printf("The client %d say: %s", i, buf);
+						printf("%s(%d) say: %s", client.node[i].name, i, buf);
 					}
 					bzero(buf, sizeof(buf));
 					bzero(&sockfd, sizeof(sockfd));
