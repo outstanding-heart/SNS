@@ -34,7 +34,7 @@ typedef struct Clist
 	int length;
 }Clist;
 
-void Load(int sockfd, Cnode *node)
+int Load(int sockfd, Cnode *node)
 {
 	int fd,n;
 	char name[MAX], passwd[MAX], buf_pw[MAX], buf[MAX];
@@ -50,7 +50,7 @@ void Load(int sockfd, Cnode *node)
 	if((fd = open(name, O_RDONLY)) == -1)//the name is error
 	{
 		write(sockfd, name, strlen(name));
-		return;
+		return 0;
 	}
 	else
 	{
@@ -67,6 +67,7 @@ void Load(int sockfd, Cnode *node)
 	if(strcmp(passwd, buf_pw) != 0)//the password is error
 	{
 		write(sockfd, passwd, strlen(passwd));
+		return 1;
 	}
 	else
 	{
@@ -78,7 +79,7 @@ void Load(int sockfd, Cnode *node)
 		buf[strlen(buf)] = '\0';
 		write(sockfd, buf, strlen(buf));
 	}
-	return;
+	return 2;
 }
 
 void Recv(int sockfd)
@@ -141,7 +142,7 @@ void sig_chld(int signo)//处理僵死进程
 
 int main()
 {
-	int listenfd, connfd, i, j, maxi, maxfd, sockfd;
+	int listenfd, connfd, i, j, maxi, maxfd, sockfd, load_count;
 	int nready;
 	Clist client;
 	ssize_t n;
@@ -183,6 +184,7 @@ int main()
 
 	maxfd = listenfd;
 	maxi = -1;
+	client.length = 0;
 	for(i = 0; i< FD_SETSIZE; i++)
 		client.node[i].des = -1;
 	FD_ZERO(&allset);
@@ -244,6 +246,8 @@ int main()
 					close(sockfd);
 					FD_CLR(sockfd,&allset);
 					client.node[i].des = -1;
+					bzero(client.node[i].name,sizeof(client.node[i].name));
+					client.length--;
 					printf("%s(%d) is over\n",client.node[i].name ,i);
 				}
 				else
@@ -263,8 +267,13 @@ int main()
 					}
 					else if(strcmp(buf,"~") == 0)	
 					{
-						Load(sockfd, &client.node[i]);
-						printf("The %s loaded!\n", client.node[i].name);
+						load_count = Load(sockfd, &client.node[i]);
+						if(load_count == 0)
+							printf("name error!\n");
+						else if(load_count == 1)
+							printf("password error!\n");
+						else
+							printf("The %s loaded!\n", client.node[i].name);
 					}
 					else
 					{
@@ -286,7 +295,7 @@ int main()
 			fgets(sendline, MAX, stdin);
 			sendline[strlen(sendline)] = '\0';
 			write(client.node[j].des, sendline, strlen(sendline));
-			printf("You say %d :%s", j, sendline);
+			printf("You say to %s(%d):%s", client.node[i].name, j, sendline);
 			bzero(sendline, sizeof(sendline));
 		}
 	}
