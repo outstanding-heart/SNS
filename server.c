@@ -34,10 +34,9 @@ typedef struct Clist
 	int length;
 }Clist;
 
-Cnode Load(int sockfd)
+void Load(int sockfd, Cnode *node)
 {
 	int fd,n;
-	Cnode node;
 	char name[MAX], passwd[MAX], buf_pw[MAX], buf[MAX];
 
 	//initialize
@@ -51,7 +50,7 @@ Cnode Load(int sockfd)
 	if((fd = open(name, O_RDONLY)) == -1)//the name is error
 	{
 		write(sockfd, name, strlen(name));
-		return node;
+		return;
 	}
 	else
 	{
@@ -71,11 +70,15 @@ Cnode Load(int sockfd)
 	}
 	else
 	{
+		sprintf((*node).name, name);
+		//strcpy((*node).name, name);
+		//node.name = name;
 		printf("Loading success\n");
 		sprintf(buf, "~");
 		buf[strlen(buf)] = '\0';
 		write(sockfd, buf, strlen(buf));
 	}
+	return;
 }
 
 void Recv(int sockfd)
@@ -260,7 +263,8 @@ int main()
 					}
 					else if(strcmp(buf,"~") == 0)	
 					{
-						Load(sockfd);
+						Load(sockfd, &client.node[i]);
+						printf("The %s loaded!\n", client.node[i].name);
 					}
 					else
 					{
