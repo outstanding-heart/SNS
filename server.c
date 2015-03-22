@@ -104,7 +104,7 @@ void Recv(int sockfd)
 	}
 	//printf("%s\n",filename);
 
-	//creat the new file named "filename"
+	//create the new file named "filename"
 	if((fd = creat(filename, FILE_MODE)) < 0)
 	{
 		printf("Create error\n");
